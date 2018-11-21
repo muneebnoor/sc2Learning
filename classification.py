@@ -5,16 +5,32 @@ from tensorflow import keras
 
 my_path = os.path.abspath(os.path.dirname(__file__))
 
-sc2data = np.load(my_path + "\\numpyArrays\\subsets\\subsetOut.npz")
+sc2data = np.load(my_path + "/numpyArrays/modData.npz")
+#sc2data = np.load(my_path + "\\numpyArrays\\modData.npz")
 
-test_data = sc2data['test']
-test_out = sc2data['test_out']
+data = sc2data['data']
+dataOut = sc2data['dataOut']
 
-train_data = sc2data['train']
-train_out = sc2data['trainout']
+'''
+newData = list()
+for a,b in zip(data,dataOut):
+    a[-1] = b[1]
+    a[-2] = b[0]
+    newData.append(a)
+
+data = np.array(newData)
+#data = np.hstack([data,dataOut])
+'''
+
+split = int(0.5 * len(data))
+train_data = data[:split]
+train_out = dataOut[:split]
+test_data = data[split:]
+test_out = dataOut[split:]
+
 
 model = keras.Sequential([
-    keras.layers.Dense(128, input_shape=(458,), activation=tf.nn.relu),
+    keras.layers.Dense(128, input_shape=(915,), activation=tf.nn.relu),
     keras.layers.Dense(128, activation=tf.nn.relu),
     keras.layers.Dense(2, activation=tf.nn.softmax)
 ])
