@@ -13,6 +13,11 @@ dataOut = sc2data['dataOut']
 
 
 
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
 '''
 newData = list()
 for a,b in zip(data,dataOut):
@@ -23,19 +28,16 @@ for a,b in zip(data,dataOut):
 data = np.array(newData)
 #data = np.hstack([data,dataOut])
 '''
-
-split = int(0.5 * len(data))
+data, dataOut = unison_shuffled_copies(data,dataOut)
+split = int(0.8 * len(data))
 train_data = data[:split]
 train_out = dataOut[:split]
 test_data = data[split:]
 test_out = dataOut[split:]
 
-for (trd,tro) in zip(train_data,train_out):
-  print(trd.argmax())
-
 model = keras.Sequential([
-    keras.layers.Dense(128, input_shape=(915,), activation=tf.nn.relu),
-    keras.layers.Dense(128, activation=tf.nn.relu),
+    keras.layers.Dense(124, input_shape=(915,), activation=tf.nn.relu),
+    keras.layers.Dense(124, activation=tf.nn.relu),
     keras.layers.Dense(2, activation=tf.nn.softmax)
 ])
 
