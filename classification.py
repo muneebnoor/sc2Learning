@@ -11,6 +11,8 @@ sc2data = np.load(my_path + "/numpyArrays/modData.npz")
 data = sc2data['data']
 dataOut = sc2data['dataOut']
 
+
+
 '''
 newData = list()
 for a,b in zip(data,dataOut):
@@ -28,6 +30,8 @@ train_out = dataOut[:split]
 test_data = data[split:]
 test_out = dataOut[split:]
 
+for (trd,tro) in zip(train_data,train_out):
+  print(trd.argmax())
 
 model = keras.Sequential([
     keras.layers.Dense(128, input_shape=(915,), activation=tf.nn.relu),
