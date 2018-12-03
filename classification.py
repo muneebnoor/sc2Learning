@@ -1,11 +1,12 @@
 import numpy as np
 import os
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from tensorflow import keras
 
 my_path = os.path.abspath(os.path.dirname(__file__))
 
-sc2data = np.load(my_path + "/numpyArrays/modData.npz")
+sc2data = np.load(my_path + "/numpyArrays/data05Perc.npz")
 #sc2data = np.load(my_path + "\\numpyArrays\\modData.npz")
 
 data = sc2data['data']
@@ -28,12 +29,6 @@ for a,b in zip(data,dataOut):
 data = np.array(newData)
 #data = np.hstack([data,dataOut])
 '''
-data, dataOut = unison_shuffled_copies(data,dataOut)
-split = int(0.8 * len(data))
-train_data = data[:split]
-train_out = dataOut[:split]
-test_data = data[split:]
-test_out = dataOut[split:]
 
 model = keras.Sequential([
     keras.layers.Dense(124, input_shape=(915,), activation=tf.nn.relu),
@@ -45,8 +40,14 @@ model.compile(optimizer=tf.train.AdamOptimizer(),
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
-history = model.fit(train_data, train_out, epochs=5)
+history = model.fit(data, dataOut,  validation_split=0.25, epochs=5)
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
 
-test_loss, test_acc = model.evaluate(test_data, test_out)
 
-print('Test accuracy:', test_acc)
+#print('Test accuracy:', history['val_acc'])
