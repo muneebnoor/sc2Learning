@@ -6,41 +6,35 @@ from tensorflow import keras
 
 my_path = os.path.abspath(os.path.dirname(__file__))
 
-sc2data = np.load(my_path + "/numpyArrays/data05Perc.npz")
-#sc2data = np.load(my_path + "\\numpyArrays\\modData.npz")
+dataPath = "D:\\thesis\\datafirst90Perc.npy"
+LabelsPath = "D:\\thesis\\dataOutfirst90Perc.npy"
+trainsc2 = np.load(my_path + "\\numpyArrays\\trainlast3perc.npz")
+testsc2 = np.load(my_path + "\\numpyArrays\\testlast3perc.npz")
 
-data = sc2data['data']
-dataOut = sc2data['dataOut']
+traindata = trainsc2['data']
+traindataOut = trainsc2['dataOut']
+
+testdata = testsc2['data']
+testdataOut = testsc2['dataOut']
 
 
-
-def unison_shuffled_copies(a, b):
-    assert len(a) == len(b)
-    p = np.random.permutation(len(a))
-    return a[p], b[p]
-
-'''
-newData = list()
-for a,b in zip(data,dataOut):
-    a[-1] = b[1]
-    a[-2] = b[0]
-    newData.append(a)
-
-data = np.array(newData)
-#data = np.hstack([data,dataOut])
-'''
 
 model = keras.Sequential([
-    keras.layers.Dense(124, input_shape=(915,), activation=tf.nn.relu),
-    keras.layers.Dense(124, activation=tf.nn.relu),
-    keras.layers.Dense(2, activation=tf.nn.softmax)
+    #keras.layers.Dropout(0.5),
+    keras.layers.Dense(124,  input_shape=(915,),kernel_regularizer= keras.regularizers.l2(0.5) ,activation=tf.nn.relu),
+    #keras.layers.Dropout(0.5),
+    keras.layers.Dense(124,kernel_regularizer= keras.regularizers.l2(0.5) , activation=tf.nn.relu),
+    #keras.layers.Dropout(0.5),
+    keras.layers.Dense(2, kernel_regularizer= keras.regularizers.l2(0.5), activation=tf.nn.softmax)
 ])
-
 model.compile(optimizer=tf.train.AdamOptimizer(),
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
-history = model.fit(data, dataOut,  validation_split=0.25, epochs=5)
+history = model.fit(traindata, traindataOut,validation_data=(testdata,testdataOut) ,epochs=5)
+
+
+# Plot training & validation accuracy values
 plt.plot(history.history['acc'])
 plt.plot(history.history['val_acc'])
 plt.title('Model accuracy')
@@ -49,5 +43,11 @@ plt.xlabel('Epoch')
 plt.legend(['Train', 'Test'], loc='upper left')
 plt.show()
 
-
-#print('Test accuracy:', history['val_acc'])
+# Plot training & validation loss values
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
