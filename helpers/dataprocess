@@ -1,0 +1,170 @@
+import numpy as np
+import h5py
+import pickle
+
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
+
+def get_next_item():
+    print("yes")
+
+
+
+
+data=[]
+dataOut=[]
+
+
+dataPath = "D:\\thesis\\data100Perc.npy"
+LabelsPath = "D:\\thesis\\dataOut100Perc.npy"
+
+testData ="D:\\thesis\\datatestlast3percx.npy"
+trainData = "D:\\thesis\\datatrainlast3percx.npy"
+testOut = "D:\\thesis\\dataOuttestlast3percx.npy"
+trainOut = "D:\\thesis\\dataOuttrainlast3percx.npy"
+
+trainArr = np.array([])
+trainOutArr = np.array([])
+
+with open(trainData, 'rb') as f:
+    tempList = pickle.load(f)
+    trainArr = np.array(tempList)
+
+with open(trainOut, 'rb') as f:
+    tempList = pickle.load(f)
+    trainOutArr = np.array(tempList)
+
+
+
+
+permData,permDataOut = unison_shuffled_copies(trainArr,trainOutArr)
+
+np.savez_compressed('trainlast3percx', data=permData, dataOut=permDataOut)
+
+
+testArr = np.array([])
+testOutArr = np.array([])
+
+
+with open(testData, 'rb') as f:
+    tempList = pickle.load(f)
+    testArr = np.array(tempList)
+
+with open(testOut, 'rb') as f:
+    tempList = pickle.load(f)
+    testOutArr = np.array(tempList)
+
+
+permData,permDataOut = unison_shuffled_copies(testArr,testOutArr)
+
+np.savez_compressed('testlast3percx', data=permData, dataOut=permDataOut)
+
+
+h5file = h5py.File('dataonemin.hdf5','w')
+
+#dset = h5file.create_dataset("data", data=[])
+f = open(dataPath,"rb")
+labels_file = open(LabelsPath,"rb")
+final = np.array([])
+finalOut = np.array([])
+count = 0
+dataList = list()
+dataOutList = list()
+
+while 1:
+    try:
+        if count < 2:
+            count +=1
+            print(count)
+            objs = np.load(f)
+            results = np.load(labels_file)
+            filterObjs = [i for (i, x) in enumerate(objs) if x[457] >= 850 and x[457] <= 1450]
+            for ind in filterObjs:
+                dataList.append(objs[ind])
+                dataOutList.append(results[ind])
+        else:
+            break
+    except Exception:
+        break
+
+
+dataList = list()
+dataOutList = list()
+
+while 1:
+    try:
+        count +=1
+        print(count)
+        replayCount = 0
+        lastValue = 0
+        objs = np.load(f)
+        results = np.load(labels_file)
+        filterObjs = [x for x in objs if x[457] >= 550 and x[457] <= 1450]
+        for d in filterObjs:
+            if d[457] < lastValue:
+                print("Last Frame: %d     First Frame:%d" % (d[457], lastValue))
+            lastValue = d[457]
+
+    except Exception:
+        break
+
+
+
+'''
+f = open(LabelsPath,"rb")
+hp.close()
+
+while 1:
+    try:
+        objs = np.load(f)
+        if len(finalOut) == 0:
+            final = objs
+        else:
+            finalOut = np.vstack((finalOut,objs))
+    except Exception:
+        break
+
+np.savez_compressed('FullData', data=final, dataOut=finalOut)
+print("WOHOO")
+
+
+#with open(dataPath, 'rb') as fp:
+    #data = pickle.load(fp)
+
+#with open(LabelsPath, 'rb') as fp:
+    #dataOut = pickle.load(fp)
+'''
+
+
+
+dataFirst3Mins = [i for (i,x) in enumerate(data) if x[457] > 0 and x[457] < 4050]
+noOfReplays = [i for (i,x) in enumerate(data) if x[457] < 1350]
+
+replayCount = 0
+lastValue = 0
+
+
+for d in data:
+    if d[457] < lastValue:
+        print("Last Frame: %d     First Frame:%d"%(d[457],lastValue))
+        replayCount += 1
+    lastValue = d[457]
+dataList = list()
+dataOutList = list()
+
+for de in dataFirst3Mins:
+    dataList.append(data[de])
+    dataOutList.append(dataOut[de])
+
+
+data = np.array(dataList)
+dataOut = np.array(dataOutList)
+
+permData,permDataOut = unison_shuffled_copies(data,dataOut)
+for d in permData:
+    d[457] = 0
+
+np.savez_compressed('test', data=permData, dataOut=permDataOut)

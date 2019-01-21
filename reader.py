@@ -5,7 +5,7 @@ import os
 from collections import Counter
 from collections import Set
 
-path = "D:/thesis/trainReplays"
+path = "D:/thesis/allReplays"
 
 unitHeaders = list()
 datalist = list()
@@ -14,8 +14,23 @@ count = 0
 upgradeHeaders = set()
 counter = Counter()
 headersList = list()
+zergHeaders = list()
+protossHeaders = list()
+terranHeaders = list()
+
 
 maxFrame = 999999
+
+with open('D:\\thesis\\headersZerg.txt', 'rb') as f:
+    zergHeaders = pickle.load(f)
+
+
+with open('D:\\thesis\\headersProtoss.txt', 'rb') as f:
+    protossHeaders = pickle.load(f)
+
+with open('D:\\thesis\\headersTerran.txt', 'rb') as f:
+    terranHeaders = pickle.load(f)
+
 with open('D:\\thesis\\headers2000.txt', 'rb') as f:
     headersList = pickle.load(f)
 
@@ -108,6 +123,69 @@ def events_into_list(events, percentOfEvents):
     #p_data = [x for x in playerData if x['Frame'] <= target_frame] #For first percentOfEvents
     return p_data
 
+def get_race_class(pl1_race, pl2_race):
+    race_class = ''
+    if pl1_race == "Zerg":
+        if pl2_race == "Zerg":
+            race_class = 'Z vs Z'
+        elif pl2_race == "Protoss":
+            race_class = "Z vs P"
+        elif pl2_race == "Terran":
+            race_class = "Z vs T"
+    elif pl1_race == "Terran":
+        if pl2_race == "Zerg":
+            race_class = 'Z vs T'
+        elif pl2_race == "Protoss":
+            race_class = "T vs P"
+        elif pl2_race == "Terran":
+            race_class = "T vs T"
+    elif pl1_race == "Protoss":
+        if pl2_race == "Zerg":
+            race_class = 'Z vs P'
+        elif pl2_race == "Protoss":
+            race_class = "P vs P"
+        elif pl2_race == "Terran":
+            race_class = "T vs P"
+    else:
+        print(pl1_race)
+        print(pl2_race)
+
+    return race_class
+
+def classify_by_type(path):
+    counter = Counter()
+    replay_races = dict()
+    for file in os.listdir(path):
+        try:
+            replay = sc2reader.load_replay(path + '/' + file, load_level=4, debug=True)
+            if len(replay.players) == 2 and replay.winner is not None:
+                player1_race = replay.players[0].attribute_data['Race']
+                player2_race = replay.players[1].attribute_data['Race']
+                if player1_race == "Random":
+                    p1_unit = replay.players[0].units[25].name
+                    if p1_unit in zergHeaders:
+                        player1_race = "Zerg"
+                    elif p1_unit in terranHeaders:
+                        player1_race = "Terran"
+                    elif p1_unit in protossHeaders:
+                        player1_race = "Protoss"
+                if player2_race == "Random":
+                    p2_unit = replay.players[1].units[25].name
+                    if p2_unit in zergHeaders:
+                        player2_race = "Zerg"
+                    elif p2_unit in terranHeaders:
+                        player2_race = "Terran"
+                    elif p2_unit in protossHeaders:
+                        player2_race = "Protoss"
+
+                replay_races[file] = get_race_class(player1_race, player2_race)
+        except Exception:
+            print(file)
+    with open("replay_races.txt", 'wb') as fp:
+        pickle.dump(replay_races, fp)
+
+
+
 def parse_replay(replay):
     allEvents = get_events(1,replay)
     allEvents.sort(key=getFrame)
@@ -117,10 +195,10 @@ def parse_replay(replay):
     oppEvents = get_events(2,replay)
     if len(allEvents) > 50 and len(oppEvents) > 50:
         playerStats = events_into_list(allEvents,.03)
-
         oppStats = events_into_list(oppEvents, 1)
         winnerPid = replay.winner.players[0].pid
-        result = [1, 0] if winnerPid == 1 else [0, 1]
+        result = [1,0] if winnerPid == 1 else [0,1]
+        neg_result = [0,1] if result == [1,0] else [1,0]
         player1 = list()
         for e in playerStats:
             candidates = [x for x in oppStats if x["Frame"] <= e["Frame"]]
@@ -133,6 +211,7 @@ def parse_replay(replay):
                 for key,value in appendEntry.items():
                     if key != "Frame":
                         tempList2.append(value)
+                tempList1.pop(457)
                 player1.append(tempList1+tempList2)
                 resultList.append(result)
         datalist.extend(player1)
@@ -163,44 +242,94 @@ def get_headers(replay):
     unitHeaders.extend(buildingObjects)
     unitHeaders.extend(upgradeCompleteEvents)
 
+def create_race_files(race_val):
+    dataPath = 'D:\\thesis\\train2' + race_val+ '3percx.npy'
+    LabelsPath = 'D:\\thesis\\trainout2' + race_val+ '3percx.npy'
+    testPath = 'D:\\thesis\\test2' + race_val + '3percx.npy'
+    testOutPath = 'D:\\thesis\\testout2' + race_val + '3percx.npy'
+    maxFrame = 0
+    minFrame = 10000
 
-dataPath = 'D:\\thesis\\datatrainlast3perc.npy'
-LabelsPath = 'D:\\thesis\\dataOuttrainlast3perc.npy'
-maxFrame = 0
-minFrame = 10000
+    raceReplays = [key for key,val in races_dict.items() if val==race_val]
+    trainReplays = raceReplays[:int(len(raceReplays) * 0.8) ]
+    testReplays = raceReplays[int(len(raceReplays) * 0.8):]
 
-for file in os.listdir(path):
-    try:
-        replay = sc2reader.load_replay(path+'/'+file, load_level=4, debug=True)
-        if len(replay.players) == 2 and replay.winner is not None:
-            print(file)
-            parse_replay(replay)
-            count += 1
-        '''
-        if count == 500:
-            count = 0
-            resultsArray = np.array(resultList)
-            dataArray = np.array(datalist)
-            with open(dataPath, 'a') as fp:
-                for dl in datalist:
-                    fp.write(dl)
-            with open(LabelsPath, 'a') as fp:
-                for rl in resultList:
-                    fp.write(rl)
-            datalist.clear()
-            resultList.clear()
-        '''
-    except Exception:
-        print("error")
+    for file in trainReplays:
+        try:
+            replay = sc2reader.load_replay(path+'/'+file, load_level=4, debug=True)
+            if len(replay.players) == 2 and replay.winner is not None:
+                print(file)
+                parse_replay(replay)
+            '''
+            if count == 500:
+                count = 0
+                resultsArray = np.array(resultList)
+                dataArray = np.array(datalist)
+                with open(dataPath, 'a') as fp:
+                    for dl in datalist:
+                        fp.write(dl)
+                with open(LabelsPath, 'a') as fp:
+                    for rl in resultList:
+                        fp.write(rl)
+                datalist.clear()
+                resultList.clear()
+            '''
+        except Exception:
+            print("error")
+    resultsArray = np.array(resultList)
+    dataArray = np.array(datalist)
+
+    with open(dataPath, 'wb') as fp:
+        pickle.dump(datalist,fp)
+    with open(LabelsPath, 'wb') as fp:
+        pickle.dump(resultList,fp)
+
+    resultList.clear()
+    datalist.clear()
+    for file in testReplays:
+        try:
+            replay = sc2reader.load_replay(path+'/'+file, load_level=4, debug=True)
+            if len(replay.players) == 2 and replay.winner is not None:
+                print(file)
+                parse_replay(replay)
+            '''
+            if count == 500:
+                count = 0
+                resultsArray = np.array(resultList)
+                dataArray = np.array(datalist)
+                with open(dataPath, 'a') as fp:
+                    for dl in datalist:
+                        fp.write(dl)
+                with open(LabelsPath, 'a') as fp:
+                    for rl in resultList:
+                        fp.write(rl)
+                datalist.clear()
+                resultList.clear()
+            '''
+        except Exception:
+            print("error")
+    resultsArray = np.array(resultList)
+    dataArray = np.array(datalist)
+
+    with open(testPath, 'wb') as fp:
+        pickle.dump(datalist,fp)
+    with open(testOutPath, 'wb') as fp:
+        pickle.dump(resultList,fp)
 
 
-resultsArray = np.array(resultList)
-dataArray = np.array(datalist)
+#classify_by_type(path)
 
-with open(dataPath, 'ab') as fp:
-    pickle.dump(datalist,fp)
-with open(LabelsPath, 'ab') as fp:
-    pickle.dump(resultList,fp)
+#exit()
+races_dict = dict()
+with open("replay_races.txt", 'rb') as f:
+    races_dict = pickle.load(f)
+
+create_race_files('Z vs Z')
+create_race_files('Z vs P')
+create_race_files('Z vs T')
+create_race_files('T vs T')
+create_race_files('T vs P')
+create_race_files('P vs P')
 
 '''
 
